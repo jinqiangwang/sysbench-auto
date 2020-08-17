@@ -45,3 +45,5 @@ These scripts include -
    environment variables, for those which have default values, like below.
       export innodb_buffer_pool_size=${innodb_buffer_pool_size-48G}
  
+By referencing test-case01.sh you should be able to build your own test set
+in short time.

@@ -26,21 +26,12 @@ export run_cmd_script=./run-cases.sh
 
 export WORKSPACE=./
 
-if [ ! -d "./sysbench-auto" ]; 
-then
-    git clone https://github.com/jinqiangwang/sysbench-auto.git
-    cd ./sysbench-auto
-else
-    cd ./sysbench-auto
-    git pull
-fi
-
-cd ./sysbench
+pushd ../
 
 tar xzf bin.tgz
 tar xzf compress.tgz
 
-cd ./mysql
+popd
 
 export cfg_list=${WORKLOADS}
 ${run_cmd_script}
