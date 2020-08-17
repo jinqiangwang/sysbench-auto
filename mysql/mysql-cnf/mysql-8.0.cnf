@@ -1,0 +1,39 @@
+[mysqld]
+socket                          =%mysql_socket%
+pid-file                        =%mysql_pid%
+basedir                         =%mysql_basedir%
+log-error                       =%mysql_basedir%/logs/error.log
+datadir                         =%mysql_datadir%
+tmpdir                          =%mysql_tmpdir%
+
+log_timestamps=SYSTEM
+explicit_defaults_for_timestamp=1
+
+skip-log-bin
+
+innodb_page_size=%innodb_page_size%
+innodb_buffer_pool_size =%innodb_buffer_pool_size%
+innodb_buffer_pool_instances=%innodb_buffer_pool_instances%
+innodb_page_cleaners=%innodb_page_cleaners%
+innodb_log_group_home_dir=%mysql_redologdir%
+innodb_log_file_size =%innodb_log_file_size%
+innodb_log_buffer_size = 128M
+innodb_flush_log_at_trx_commit=1
+innodb_thread_concurrency=0
+innodb_open_files=100000
+innodb_file_per_table=1
+innodb_flush_method=O_DIRECT
+innodb_change_buffering=all
+innodb_adaptive_flushing=1
+innodb_old_blocks_time=1000
+innodb_use_native_aio=1
+innodb_lock_wait_timeout=120
+lock_wait_timeout=60
+innodb_io_capacity_max = 100000
+innodb_flush_neighbors = 0
+innodb_log_write_ahead_size=%innodb_log_write_ahead_size%
+
+innodb_doublewrite=%mysql_doublewrite%
+
+max_connections=65536
+max_prepared_stmt_count=1048576

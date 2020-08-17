@@ -1,0 +1,280 @@
+#!/bin/sh
+
+iostat_ext=${iostat_ext-"iostat"}
+result_ext=${result_ext-"result"}
+uname_txt=$(uname)
+
+sed_opt=" "
+if [ ${uname_txt} = 'Linux' ]; then sed_opt=" -r "; echo "running on Linux, using sed option \"${sed_opt}\".";  fi
+if [ ${uname_txt} = 'Darwin' ]; then sed_opt=" -E "; echo "running on Mac OS, using sed option \"${sed_opt}\".";  fi
+
+
+function extract_ycsb_result () {
+    opts=("INSERT" "READ" "UPDATE")
+    result_file=$1
+
+    echo "ops/sec" > csv/${result_file}._ops.csv
+    grep -e "current ops/sec;" ${result_file} | grep -v CLEANUP | sed ${sed_opt} "s/.*operations; ([0-9.]+) current.*/\1/g" >> csv/${result_file}._ops.csv
+    for opt in ${opts[@]};
+    do
+        grep -e "current ops/sec;" ${result_file} | grep -v CLEANUP | grep -m 1 -e ${opt}
+        if [ $? -ne 0 ]; then continue; fi
+        echo "${opt},op_count,max_lat,min_lat,avg_lat,90%_lat,99%_lat,99.9%_lat,99.99%_lat," > csv/${f}.${opt}.csv
+        grep -e "current ops/sec;" ${result_file} | grep -v CLEANUP | \
+        grep -e ${opt} | \
+        sed ${sed_opt} "s/.*\[${opt}: Count=([0-9]+), Max=([0-9]+), Min=([0-9]+), Avg=([0-9.�NaN]+), 90=([0-9]+), 99=([0-9]+), 99.9=([0-9]+), 99.99=([0-9]+)\].*/,\1,\2,\3,\4,\5,\6,\7,\8,/g" | sed ${sed_opt} "s/�/0/g" >> csv/${f}.${opt}.csv
+    done
+}
+
+function extract_sysbench_result () {
+    result_file=$1
+
+    pct_lat=`cat ${result_file} | grep -m 1 "\[" | sed -E 's/.*lat\s\(ms,([0-9%]+)\):.*/\1/g'`
+    echo "thrds,tps,qps,${pct_lat} latency," > csv/${result_file}.csv
+    grep "\[" ${result_file} | sed ${sed_opt} 's/.*thds:\s([0-9]+)\stps:\s([0-9.]+)\sqps:\s([0-9.]+).*%\):\s([0-9.]+).*/\1,\2,\3,\4,/g' >> csv/${result_file}.csv 
+}
+
+function extract_iostat () {
+    iostat_file=$1
+
+    # extract io data from iostat
+    io_fields="1,2-14"
+    grep -m 1 Device ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} > csv/io.csv
+    grep -e sfd -e nvme ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} >> csv/io.csv
+
+    # extract cpu usage from iostat
+    cpu_usage_fields="1,2,4,5,7"
+    grep -m 1 avg-cpu ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} > csv/cpu.csv
+    grep -A 1 avg-cpu ${iostat_file} | grep -v -e\- | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} >> csv/cpu.csv
+
+    # extract timestamp from iostat
+    echo ts > csv/ts.csv
+    grep [0-9]:[0-9] ${iostat_file} | grep -v iostat >> csv/ts.csv
+
+    # consolidate io.csv/cpu.csv/ts.csv into a single file
+    paste -d, csv/io.csv csv/cpu.csv csv/ts.csv > csv/${iostat_file}.csv
+    rm csv/io.csv csv/cpu.csv csv/ts.csv
+}
+
+function generate_csv() {
+    # this function is to convert Sysbench test output to CSV file,
+    # and convert iostat result (CPU/IO) to CSV file.
+    output_dir=$1
+    pushd ${output_dir}
+    if [ ! -e csv ]; then mkdir csv; fi
+
+    echo "generating csv file from benchmark result / iostat"
+    for f in `ls -tr *.${result_ext} | grep -v -e prepare -e load | cut -d\. -f1 | uniq`;
+    do
+        grep -e "com.yahoo.ycsb" -m 1 $f.${result_ext}  > /dev/null
+        if [ $? -eq 0 ]; then extract_ycsb_result $f.${result_ext}; fi
+
+        grep -e "sysbench" -m 1 $f.${result_ext} >> /dev/null
+        if [ $? -eq 0 ]; then extract_sysbench_result $f.${result_ext}; fi
+
+        extract_iostat $f.${iostat_ext}
+
+        line_count=`cat csv/$f.${result_ext}.csv | wc -l`
+        head -n1 csv/$f.${iostat_ext}.csv > csv/io.csv
+        tail -n$((${line_count}-1)) csv/$f.${iostat_ext}.csv >> csv/io.csv
+        paste -d, csv/$f.${result_ext}.csv csv/io.csv > csv/$f.csv
+        rm csv/$f.${iostat_ext}.csv csv/$f.${result_ext}.csv csv/io.csv
+    done
+
+    # for f in `ls *.counter | grep -v -e prepare`;
+    # do
+    #     fields="1,6-9"
+    #     head -n 3 $f | sed ${sed_opt} 's/\s+/,/g' | cut -d , -f ${fields} > csv/$f.redo1.csv
+    #     fields="1,5,7,8,12-14"
+    #     tail -n 2 $f | sed ${sed_opt} 's/\s+/,/g' | cut -d , -f ${fields} > csv/$f.redo2.csv
+    # done
+    popd
+}
+
+function truncate_sys_tables() {
+    # clear data in MySQL performance schema tables. it is useful when 
+    # counter data within certain time range is being collected
+    ${mysql_basedir}/bin/mysql \
+            --socket=${mysql_socket} -u${mysql_user} \
+            -e "call sys.ps_truncate_all_tables(0)"
+}
+
+
+function collect_index_info () {
+    # collect index info from MySQL performance schema tables
+    timestamp="`date +%Y%m%d_%H%M%S`"
+    output_file=$1
+
+    if [ "output_file" == "" ]; then output_file=index_${timestamp}.txt; fi
+    ${mysql_basedir}/bin/mysql \
+            --socket=${mysql_socket} -u${mysql_user} \
+            -e "SELECT * FROM INFORMATION_SCHEMA.INNODB_SYS_INDEXES" \
+            > ${output_file}
+}
+
+function collect_index_page_info () {
+    timestamp="`date +%Y%m%d_%H%M%S`"
+    output_file=$1
+
+    if [ "output_file" == "" ]; then output_file=index_page_${timestamp}.txt; fi
+
+    ${mysql_basedir}/bin/mysql \
+            --socket=${mysql_socket} -u${mysql_user} \
+            -e "SELECT * FROM INFORMATION_SCHEMA.INNODB_METRICS where (NAME like '%index_page_merge%' or NAME like '%index_page_split%')" \
+            > ${output_file}
+}
+
+function collect_perf_counter_redolog() {
+    timestamp="`date +%Y%m%d_%H%M%S`"
+    output_file=$1
+
+    if [ "output_file" == "" ]; then output_file=lat_${timestamp}.txt; fi
+
+    ${mysql_basedir}/bin/mysql \
+            --socket=${mysql_socket} -u${mysql_user} \
+            -e "select * from sys.x\$io_global_by_file_by_latency where file like '%ib_logfile%'" > ${output_file}
+    ${mysql_basedir}/bin/mysql \
+            --socket=${mysql_socket} -u${mysql_user} \
+            -e "select * from sys.x\$io_global_by_wait_by_latency where event_name like '%innodb_log_file%'" >> ${output_file} 
+}
+
+function start_collect_mysql_lat_act() {
+    mysqlcmd="${mysql_basedir}/bin/mysql -u${mysql_user} --socket=${mysql_socket}"
+    out_dir=$1
+    run_time=$2
+    workload=$3
+
+    if [[ "${workload}" == "prepare" ]] || [[ "${workload}" == "" ]]; then return 0; fi
+
+    # lat_sql="select * from sys.x\$io_global_by_file_by_latency where file like '%ib_logfile%'"
+    # act_sql="select * from sys.x\$io_global_by_file_by_bytes where file like '%ib_logfile%'"
+    lat_sql="select * from sys.x\$io_global_by_file_by_latency"
+    act_sql="select * from sys.x\$io_global_by_file_by_bytes"
+
+    if [ "${out_dir}" == "" ]; then out_dir=./; fi
+
+    echo "Start collecting MySQL lat / act counter"
+
+    for((i=0;i<$((${run_time}/5));i++));
+    do
+        if [ -e ${out_dir}/stop_mysql_lat_act ]; then rm ${out_dir}/stop_mysql_lat_act; echo "stop mysql lat / act collection"; break; fi
+        echo __mysql_sys_perf_lat_$(($i*5)) >> ${out_dir}/${workload}_mysql_lat.log
+        $mysqlcmd -e "${lat_sql}" >> ${out_dir}/${workload}_mysql_lat.log
+
+        echo __mysql_sys_perf_act_$(($i*5)) >> ${out_dir}/${workload}_mysql_act.log
+        $mysqlcmd -e "${act_sql}" >> ${out_dir}/${workload}_mysql_act.log
+        sleep 5
+    done
+}
+
+function stop_collect_mysql_lat_act() {
+    out_dir=$1
+
+    if [ "${out_dir}" == "" ]; then out_dir=./; fi
+    touch ${out_dir}/stop_mysql_lat_act
+    for i in {0..10};
+    do
+        if [ -e ${out_dir}/stop_mysql_lat_act ]; then sleep 1; else return 0; fi
+    done
+
+    rm ${out_dir}/stop_mysql_lat_act
+}
+
+function start_blk_trace() {
+    out_dir=$1
+    case_name=$2
+    dev_name=$3
+    blk_run_time_sec=$4
+    filters="-a queue"
+
+    if [ "${out_dir}" == "" ]; then out_dir = "./"; fi
+    if [ ! -e ${out_dir}/btrace ]; then mkdir -p ${out_dir}/btrace; fi
+    if [ "${dev_name}" == "" ]; then return 1; fi
+    if [ "${blk_run_time_sec}" == "" ]; then blk_run_time_sec = 60; fi
+
+    echo "workload run time - ${run_time} seconds"
+    echo "blktrace run time - ${blk_run_time_sec} seconds"
+
+    if [ ${run_time} -ge $((${blk_run_time_sec}+30)) ];
+    then
+        sleep_sec=$((${run_time}-${blk_run_time_sec}-30))
+        echo "wait time ${sleep_sec} seconds"
+        sleep ${sleep_sec}
+    else
+        echo "workload run time is less than blktrace run time, will use workload run time as blktrace run time"
+        blk_run_time_sec=${run_time}
+    fi
+    echo `date` > ${out_dir}/btrace/${case_name}.timing
+    blktrace_cmd="sudo blktrace ${blktrace_filters} -d ${dev_name} -D ${out_dir}/btrace -o ${case_name} -w${blk_run_time_sec}"
+    echo "${blktrace_cmd}"
+    ${blktrace_cmd}
+    echo `date` >> ${out_dir}/btrace/${case_name}.timing
+}
+
+function collect_sys_info() {
+    # collect sys information, including
+    #   1. cpu
+    #   2. memory
+    #   3. disk
+    #   4. os
+    #   5. css-status output
+    local_output_dir=$1
+    css_status=$2
+    if [ "${local_output_dir}" == "" ];
+    then
+        local_output_dir=`pwd`
+    fi
+
+    if [ "${css_status}" == "" ];
+    then
+        css_status="sfx-status"
+    fi
+
+    echo -e "\n[sys]"           >  ${local_output_dir}/sysinfo.txt
+    cat /sys/class/dmi/id/sys_vendor \
+                                >> ${local_output_dir}/sysinfo.txt
+    cat /sys/class/dmi/id/product_name \
+                                >> ${local_output_dir}/sysinfo.txt
+    cat /sys/class/dmi/id/product_version \
+                                >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[cpu]"           >> ${local_output_dir}/sysinfo.txt
+    lscpu                       >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[memory]"        >> ${local_output_dir}/sysinfo.txt
+    free -m                     >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[disk]"          >> ${local_output_dir}/sysinfo.txt
+    lsblk                       >> ${local_output_dir}/sysinfo.txt
+    df -h                       >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[nvme]"          >> ${local_output_dir}/sysinfo.txt
+    sudo nvme list              >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[os]"            >> ${local_output_dir}/sysinfo.txt
+    uname -a                    >> ${local_output_dir}/sysinfo.txt
+    cat /etc/system-release     >> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[filesystem]"	>> ${local_output_dir}/sysinfo.txt
+    findmnt			>> ${local_output_dir}/sysinfo.txt
+    echo -e "\n[css-status]"    >> ${local_output_dir}/sysinfo.txt
+
+    which ${css_status} > /dev/null
+    if [ $? -eq 0 ];
+    then
+        sudo ${css_status}      >> ${local_output_dir}/sysinfo.txt
+    fi
+}
+
+function gen_benchinfo_pg() {
+    output_dir=$3
+    ssd_name=$1
+    scale=$2
+    pushd ${output_dir}
+    fillfactor=ff$4
+    dbsize=${scale}
+    echo -e "ssd=${ssd_name} dbsize=${dbsize}G_${fillfactor}" >> ./bench.info
+    new_name=${output_dir##*/}_${ssd_name%3.2t}_${dbsize}G_${fillfactor}
+    new_file=${output_dir%/*}/${new_name}
+    mv ${output_dir} ${new_file}
+    zip -rq ${output_dir%/*}/${new_name}.zip ../${new_name} -x "../${new_name}/*.log" "../${new_name}/*.sfx_message"
+    if [ -e "btrace" ]; then
+        zip -r btrace.zip btrace
+        rm -rf btrace
+    fi
+    popd
+}

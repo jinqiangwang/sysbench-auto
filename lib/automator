@@ -1,0 +1,269 @@
+#!/bin/bash
+
+# mysql 5.7.25
+export mysql_ver=mysql-5.7.25
+export mysql_pkg_suffix=-linux-glibc2.12-x86_64.tar.gz
+export mysql_repo=http://192.168.10.123/apps/mysql
+
+## mariadb 10.4.13
+# export mariadb_ver=mariadb-10.4.13
+# export mariadb_pkg_suffix=-linux-x86_64.tar.gz
+# export mariadb_repo=http://192.168.10.123/apps/mariadb
+
+# mariadb 10.5.4
+export mariadb_ver=mariadb-10.5.4
+export mariadb_pkg_suffix=-linux-systemd-x86_64.tar.gz
+export mariadb_repo=http://192.168.10.123/apps/mariadb
+
+export nfs_share=192.168.10.123:/share_bj
+export local_share=/share_bj
+export sw_base_dir=${local_share}/releases/Engineering
+export fpga_base_dir=${local_share}/releases/vanda/B17A
+export app_base=/opt/app
+
+# pgsql config info
+export pgsql_name=pgsql
+export pgsql_ver=postgresql-10.10
+export pgsql_pkg_suffix='-1-linux-x64-binaries.tar.gz'
+export pgsql_repo=http://192.168.10.123/apps/postgresql
+
+function init_network_env() {
+    ip_cmd="/usr/bin/ip"
+    if [ ! -f ${ip_cmd} ]; then ip_cmd=/sbin/ip; fi
+    ip_subnet=$(${ip_cmd} -4 a | grep inet | grep -v -e "scope host" -e "ppp" -e "virbr" -e "docker" -e "192.168.122" | sed -r "s/\s+/,/g" | cut -d, -f3 | cut -d. -f 1-3 | uniq | head -n 1)
+    case ${ip_subnet} in
+        "192.168.10" | "192.168.11")
+        echo "[${ip_subnet}] is in Beijing office network"
+        # BJ subnet, use 192.168.10.123:/share_bj -> /share_bj
+        ;;
+
+        "192.168.3" | "192.168.4")
+        # SJ subnet, use 192.168.3.20:/share -> /share
+        echo "[${ip_subnet}] is in San Jose office network"
+        # export mysql_repo=https://cdn.mysql.com//Downloads/MySQL-5.7
+        # export mariadb_repo=https://mirror.serverion.com/mariadb/mariadb-10.4.13/bintar-linux-x86_64
+        #export pgsql_repo=https://www.enterprisedb.com/download-postgresql-binaries
+        # export pgsql_repo=https://sbp.enterprisedb.com/getfile.jsp?fileid=12346&_ga=2.22765554.877919624.1585709911-1387480199.1582167285
+        export nfs_share=192.168.3.20:/share
+        export local_share=/share
+        export sw_base_dir=${local_share}/releases/Engineering
+        export fpga_base_dir=${local_share}/releases/vanda/B17A
+        ;;
+
+        *)
+        echo "[${ip_subnet}] is not a valid subnet"
+        export nfs_share=""
+        ;;
+    esac
+
+    if [ "${nfs-share}" == "" ]; then return 1; fi
+
+    mount | grep "on ${local_share}"
+    if [ $? -ne 0 ];
+    then
+        sudo mkdir ${local_share}
+        sudo mount ${nfs_share} ${local_share}
+        mount | grep "on ${local_share}"
+        if [ "${nfs-share}" == "" ]; then return 1; fi
+    fi
+}
+
+function deploy_app_mysql() {
+    if [ ! -f ${app_base}/${mysql_ver}/bin/mysqld ];
+    then
+        sudo mkdir -p ${app_base}
+        pushd ${app_base}
+        echo "download [${mysql_ver}] from [${mysql_repo}/${mysql_ver}${mysql_pkg_suffix}]"
+        sudo wget -nv ${mysql_repo}/${mysql_ver}${mysql_pkg_suffix}
+        sudo tar xzf ${mysql_ver}${mysql_pkg_suffix}
+        sudo rm ${mysql_ver}${mysql_pkg_suffix}
+        sudo chown -R `whoami`:`whoami` ${mysql_ver}*
+        sudo mv `ls -d  ${mysql_ver}-* | tail -n1 ` ${mysql_ver}
+        popd
+        if [ ! -f ${app_base}/${mysql_ver}/bin/mysqld ];
+        then
+            echo "failed to deploy ${mysql_ver}"
+            exit 1
+        fi
+    else
+        echo "${mysql_ver} already deployed"
+    fi
+}
+
+function deploy_app_mariadb() {
+    if [ ! -f ${app_base}/${mariadb_ver}/bin/mysqld ];
+    then
+        sudo mkdir -p ${app_base}
+        pushd ${app_base}
+        echo "download [${mariadb_ver}] from [${mariadb_repo}/${mariadb_ver}${mariadb_pkg_suffix}]"
+        sudo wget -nv ${mariadb_repo}/${mariadb_ver}${mariadb_pkg_suffix}
+        sudo tar xzf ${mariadb_ver}${mariadb_pkg_suffix}
+        sudo rm ${mariadb_ver}${mariadb_pkg_suffix}
+        sudo chown -R `whoami`:`whoami` ${mariadb_ver}*
+        sudo mv `ls -d  ${mariadb_ver}-* | tail -n1 ` ${mariadb_ver}
+        popd
+        if [ ! -f ${app_base}/${mariadb_ver}/bin/mysqld ];
+        then
+            echo "failed to deploy ${mariadb_ver}"
+            exit 1
+        fi
+    else
+        echo "${mariadb_ver} already deployed"
+    fi
+}
+
+function deploy_app_pgsql() {
+    if [ ! -f ${app_base}/${pgsql_ver}/bin/psql ];
+    then
+        pg_pkg=${pgsql_ver}${pgsql_pkg_suffix}
+        sudo mkdir -p ${app_base}
+        pushd ${app_base}
+        echo "download [${pgsql_ver}] from [${pgsql_repo}/${pg_pkg}]"
+        sudo wget -nv ${pgsql_repo}/${pg_pkg}
+        sudo tar xzf ${pg_pkg}
+        if [ -f "${pg_pkg}" ];
+        then
+            sudo rm "${pg_pkg}"
+        fi
+        sudo chown -R `whoami`:`whoami` ${pgsql_name}*
+        sudo mv `ls -d  ${pgsql_name}* | tail -n1 ` ${pgsql_ver}
+        popd
+        if [ ! -f ${app_base}/${pgsql_ver}/bin/psql ];
+        then
+            echo "failed to deploy ${pgsql_ver}"
+            exit 1
+        fi
+    else
+        echo "${pgsql_ver} already deployed"
+    fi
+}
+
+# get_sw_dir latest|rc_3.1.1.0-r50819
+function get_sw_dir() {
+    exp_ver=$1
+    rc_prefix="rc_3*/"
+    if [[ "${exp_ver}" == "" ]] || [[ "${exp_ver}" == "latest" ]];
+    then
+        pushd ${sw_base_dir}
+        export sw_dir=$(ls -d ${rc_prefix} | tail -n1)
+        popd
+    else
+        export sw_dir=${exp_ver}
+    fi
+
+    export sw_ver=$(echo ${sw_dir} | tail -n1 | cut -c4- | sed "s/r//g")
+    echo "candidate dir [${sw_dir}]"
+
+    if [ "${sw_dir}" == "" ];
+    then
+        echo "[${sw_dir}] not valid"
+        return 1
+    fi
+
+    if [ ! -d ${sw_base_dir}/${sw_dir} ];
+    then
+        echo "[${sw_dir}] not found"
+        sw_dir=_${sw_dir}
+        echo "candidate dir [${sw_dir}]"
+        if [ ! -d ${sw_base_dir}/${sw_dir} ];
+        then
+            echo "[${sw_dir}] no found"
+            return 1
+        fi
+    fi
+
+    echo "[${sw_dir}] confirmed"
+    return 0
+}
+
+function get_install_pkg() {
+    pkg_type=$1 # rpm or deb
+    prefix=sfx3xdriver
+    kernel_ver=(`uname -r | sed -r "s/^([0-9]+\.[0-9]+\.[0-9]+-[0-9]+)\.([a-q0-9]+.*)/\1 \2/g"`)
+    pkg_pattern=${prefix}-${kernel_ver[0]}-*
+    export pkg_file=$(find ${sw_base_dir}/${sw_dir} -name ${pkg_pattern})
+
+    echo "candidate bin_pkg [${pkg_file}]"
+
+    if [[ "${pkg_file}" == "" ]] || [[ ! -f ${pkg_file} ]];
+    then
+        if [ "${pkg_type}" == "" ]; then pkg_type=x86_64.src.rpm; fi
+        prefix=sfx3xdriver
+        pkg_pattern=${prefix}-${sw_ver}.${pkg_type}
+        export pkg_file=${sw_base_dir}/${sw_dir}/${pkg_pattern}
+
+        echo "candidate src_pkg [${pkg_file}]"
+
+        if [ ! -f ${pkg_file} ];
+        then
+            echo "not valid"
+            return 1
+        else
+            echo "confirmed"
+            return 0
+        fi   
+    else
+        echo "confirmed"
+        return 0
+    fi
+}
+
+function umount_dev() {
+    dev_prefix=sfdv
+    mntpts=$(lsblk -o kname,mountpoint | grep ${dev_prefix} | sed -r "s/\s/,/g" | cut -d, -f2 | uniq)
+    if [ "${mntpts}" != "" ]; 
+    then 
+        for mntpt in ${mntpts};
+        do
+            pids=$(sudo lsof | grep /opt/data/sfx | sed -r "s/\s+/,/g" | cut -d, -f2 | uniq)
+            if [ "${pids}" != "" ]; 
+            then 
+                echo "killing pids [${pids}] which using ${mntpt}"
+                sudo kill -9 ${pids}
+                sleep 30
+            fi
+            
+            echo "unmounting ${mntpt}"
+            sudo umount ${mntpts};
+            if [ $? -ne 0 ]; then echo "sfdv dev is busy"; return 1; fi
+        done
+    fi
+}
+
+function install_sw() {
+    prefix=sfx3xdriver
+    ext_pkg=$(rpm -qa | grep ${prefix})
+
+    if [ "${ext_pkg}" != "" ];
+    then
+        echo "[${ext_pkg}] [${sw_ver}]"
+        echo ${ext_pkg} | grep ${sw_ver}
+        
+        if [ $? -ne 0 ];
+        then 
+            echo "existing sw [${ext_pkg}] different from [${sw_ver}], need to remove & install"
+
+            umount_dev; if [ $? -ne 0 ]; then echo "device busy, abort"; return 1; fi
+
+            echo "removing [${ext_pkg}]"
+            sudo rpm -e ${ext_pkg}
+            if [ $? -ne 0 ]; then echo "remove existing [${ext_pkg}] failed"; return 1; fi
+            echo "removed"
+        else
+            echo "${ext_pkg} already installed"
+            return 0
+        fi
+    fi    
+
+    sudo rpm -i ${pkg_file}
+    if [ $? -ne 0 ]; then echo "failed to install [${pkg_file}]"; return 1; fi
+    for i in {1.300}; do lsblk /dev/sfdv*; if [ $? -eq 0 ]; then return 0; fi; sleep 5; done 
+    echo "error: no sfdv device found, sw not working properly"
+    return 2;
+}
+
+function install_fpga() {
+    fpga_ver=$(sudo sfx-status | grep FPGA | sed -r "s/\s+/,/g" | cut -d, -f3 | awk '{print int($0)}')
+    # TBD
+}
+
