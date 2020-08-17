@@ -20,6 +20,9 @@ Prerequisites
     2) MySQL 5.7.25 Percoan - /opt/app/mysql-5.7.26-percona
     3) MySQL 8.0            - /opt/app/mysql-8.0.21
     4) MariaDB 10.4         - /opt/app/mariadb-10.4.13
+4. Package python-matplotlib is needed for presenting results as charts.
+5. Do NOT run this script as root. Please create a user, enable sudo without
+   password for this user, and run as this user.
 
 How it works
 These scripts include -

@@ -16,8 +16,6 @@ cfg_list=${cfg_list-"tpcc/csd-500-awoff tpcc/csd-500-awon tpcc/csd-2000-awoff tp
 if [[ "${WORKSPACE}" != "" ]] && [[ -d ${WORKSPACE} ]];
 then
         if [ ! -d ${WORKSPACE}/test_output ]; then mkdir -p ${WORKSPACE}/test_output; fi
-        echo "removing previous test output in [${WORKSPACE}/test_output]"
-        rm -r ${WORKSPACE}/test_output/*
 fi
 
 fail_count=0
@@ -106,6 +104,7 @@ do
     if [[ "${WORKSPACE}" != "" ]] && [[ -d ${WORKSPACE} ]];
     then
         dir_name=`echo ${cfg} | sed -r -e "s#/#_#g" -e "s/.cfg//g"`
+        dir_name=${dir_name}_${timestamp}
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
         cp -r ${output_dir}/* ${WORKSPACE}/test_output/${dir_name}
@@ -124,13 +123,14 @@ do
         export CSV_FILE_LIST=`ls -tr *.csv`
         popd
 
-        ../lib/csv2chart.py \
+        export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
+        python ../lib/csv2chart.py \
             -d ${WORKSPACE}/test_output/${dir_name}/csv \
             -l 1 \
             -r 21,22 \
             -o ${WORKSPACE}/test_output/${dir_name}/result.png \
             -s ${WORKSPACE}/test_output/${dir_name}/summary.csv \
-            -t "$cfg - ${sw_ver}"
+            -t "${chart_title}"
     fi
 done
 
