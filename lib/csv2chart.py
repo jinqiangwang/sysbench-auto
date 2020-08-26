@@ -107,7 +107,7 @@ def convert_csv_to_png(csv_dir, out_file, left_ax_cols, right_ax_cols, super_tit
 
 def compute_summary(csv_dir, out_file):
     file_list = collect_csv_files(csv_dir)
-    skipheaders = ['thrds', 'Device:', 'rrqm/s', 'svctm', 'avg-cpu:', '%idle', 'ts']
+    skipheaders = ['thrds', 'Device', 'rrqm/s', 'svctm', 'avg-cpu', '%idle', 'ts']
     header_printed = False
     outdata = list()
     caseid = os.getenv('case_id')
@@ -120,7 +120,7 @@ def compute_summary(csv_dir, out_file):
         colindexes = list()
         selheaders = list()
         for i in range(len(headers)):
-            if len(headers[i].strip()) > 0 and headers[i].strip() not in skipheaders:
+            if len(headers[i].strip()) > 0 and headers[i].strip().strip(':') not in skipheaders:
                 colindexes.append(i)
                 selheaders.append(headers[i])
         try:
