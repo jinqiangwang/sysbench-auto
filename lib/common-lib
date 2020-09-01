@@ -1,8 +1,9 @@
 #!/bin/sh
 
-iostat_ext=${iostat_ext-"iostat"}
-result_ext=${result_ext-"result"}
-uname_txt=$(uname)
+export iostat_ext=${iostat_ext-"iostat"}
+export result_ext=${result_ext-"result"}
+export dev_pattern=${dev_pattern-" -e sfdv -e nvme "}
+export uname_txt=$(uname)
 
 sed_opt=" "
 if [ ${uname_txt} = 'Linux' ]; then sed_opt=" -r "; echo "running on Linux, using sed option \"${sed_opt}\".";  fi
@@ -36,11 +37,11 @@ function extract_sysbench_result () {
 
 function extract_iostat () {
     iostat_file=$1
-
+    echo "${dev_pattern}"
     # extract io data from iostat
     io_fields="1,2-14"
     grep -m 1 Device ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} > csv/io.csv
-    grep -e sfd -e nvme ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} >> csv/io.csv
+    grep ${dev_pattern} ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} >> csv/io.csv
 
     # extract cpu usage from iostat
     cpu_usage_fields="1,2,4,5,7"
