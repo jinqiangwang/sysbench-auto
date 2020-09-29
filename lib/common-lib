@@ -2,7 +2,7 @@
 
 export iostat_ext=${iostat_ext-"iostat"}
 export result_ext=${result_ext-"result"}
-export dev_pattern=${dev_pattern-" -e sfdv -e nvme "}
+export dev_pattern=${dev_pattern-"sfdv0n1 nvme0n1"}
 export uname_txt=$(uname)
 
 sed_opt=" "
@@ -38,23 +38,30 @@ function extract_sysbench_result () {
 function extract_iostat () {
     iostat_file=$1
     echo "${dev_pattern}"
-    # extract io data from iostat
-    io_fields="1,2-14"
-    grep -m 1 Device ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} > csv/io.csv
-    grep ${dev_pattern} ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} >> csv/io.csv
-
-    # extract cpu usage from iostat
-    cpu_usage_fields="1,2,4,5,7"
-    grep -m 1 avg-cpu ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} > csv/cpu.csv
-    grep -A 1 avg-cpu ${iostat_file} | grep -v -e\- | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} >> csv/cpu.csv
 
     # extract timestamp from iostat
     echo ts > csv/ts.csv
     grep [0-9]:[0-9] ${iostat_file} | grep -v iostat >> csv/ts.csv
 
-    # consolidate io.csv/cpu.csv/ts.csv into a single file
-    paste -d, csv/io.csv csv/cpu.csv csv/ts.csv > csv/${iostat_file}.csv
-    rm csv/io.csv csv/cpu.csv csv/ts.csv
+    # extract cpu usage from iostat
+    cpu_usage_fields="1,2,4,5,7"
+    grep -m 1 avg-cpu ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} > csv/cpu.csv
+    grep -A 1 avg-cpu ${iostat_file} | grep -v -e\- | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${cpu_usage_fields} >> csv/cpu.csv
+    
+    # extract io data from iostat
+    io_files=""
+    for local_dev in ${dev_pattern};
+    do
+        io_fields="1,2-14"
+        grep -m 1 Device ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} > csv/io.${local_dev}.csv
+        grep -e ${local_dev} ${iostat_file} | sed ${sed_opt} 's/\s+/,/g' | cut -d, -f${io_fields} >> csv/io.${local_dev}.csv
+        paste -d, csv/${iostat_file}.csv csv/io.${local_dev}.csv > csv/${iostat_file}.csv
+        io_files="${io_files} csv/io.${local_dev}.csv"
+    done
+
+    # consolidate ts.csv/cpu.csv into a single file
+    paste -d, csv/ts.csv csv/cpu.csv ${io_files} > csv/${iostat_file}.csv
+    rm csv/cpu.csv csv/ts.csv ${io_files}
 }
 
 function generate_csv() {

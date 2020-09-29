@@ -124,10 +124,11 @@ do
         popd
 
         export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
+        echo "chart title is ${chart_title}"
         python ../lib/csv2chart.py \
             -d ${WORKSPACE}/test_output/${dir_name}/csv \
             -l 1 \
-            -r 21,22 \
+            -r 8,9 \
             -o ${WORKSPACE}/test_output/${dir_name}/result.png \
             -s ${WORKSPACE}/test_output/${dir_name}/summary.csv \
             -t "${chart_title}"
