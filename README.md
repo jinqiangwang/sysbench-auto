@@ -11,12 +11,12 @@ Prerequisites
 2. Download MySQL tar package from their official sites. Please
    try to avoid using RPM package to install MySQL, it introduces
    unexpected complexity using this set of scripts.
-    1) MySQL 5.7.25         - https://cdn.mysql.com/archives/mysql-5.7/mysql-5.7.25-linux-glibc2.12-x86_64.tar.gz
+    1) MySQL 5.7.26         - https://cdn.mysql.com/archives/mysql-5.7/mysql-5.7.26-linux-glibc2.12-x86_64.tar.gz
     2) MySQL 5.7.26 Percoan - https://www.percona.com/downloads/Percona-XtraDB-Cluster-57/Percona-XtraDB-Cluster-5.7.26-31.37/binary/tarball/Percona-XtraDB-Cluster-5.7.26-rel29-31.37.1.Linux.x86_64.ssl100.tar.gz
     3) MySQL 8.0            - https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.21-linux-glibc2.12-x86_64.tar.xz
     4) MariaDB 10.4         - https://downloads.mariadb.org/interstitial/mariadb-10.4.13/bintar-linux-systemd-x86_64/mariadb-10.4.13-linux-systemd-x86_64.tar.gz/from/https%3A//mirrors.tuna.tsinghua.edu.cn/mariadb/
 3. Extract MySQL/MariaDB from the tar ball and save to
-    1) MySQL 5.7.25         - /opt/app/mysql-5.7.25
+    1) MySQL 5.7.26         - /opt/app/mysql-5.7.26
     2) MySQL 5.7.25 Percoan - /opt/app/mysql-5.7.26-percona
     3) MySQL 8.0            - /opt/app/mysql-8.0.21
     4) MariaDB 10.4         - /opt/app/mariadb-10.4.13
