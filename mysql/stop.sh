@@ -1,7 +1,7 @@
 #!/bin/bash
 
 function stop_mysqld_instances() {
-    for inst in `ps aux | grep mysqld | grep -v grep | cut -c 10-15`;
+    for inst in `ps aux | grep mysqld | grep -v grep | sed -r "s/\s+/,/g" | cut -d, -f 2`;
     do 
         kill -9 ${inst};
     done

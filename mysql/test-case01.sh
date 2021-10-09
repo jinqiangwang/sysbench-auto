@@ -37,10 +37,8 @@ export run_cmd_script=./run-cases.sh
 export WORKSPACE=./
 
 pushd ../
-
-tar xzf bin.tgz
-tar xzf compress.tgz
-
+if [ ! -d bin ]; then tar xzf bin.tgz; fi
+if [ ! -d compress ]; then tar xzf compress.tgz; fi
 popd
 
 export cfg_list=${WORKLOADS}

@@ -118,7 +118,7 @@ def compute_summary(csv_dir, out_file):
         file_path = csv_dir + '/' + filename
         headers = open(file_path).readline().split(',')
         colindexes = list()
-        selheaders = list()
+        selheaders = ['thrd cnt', 'workload']
         for i in range(len(headers)):
             if len(headers[i].strip()) > 0 and headers[i].strip().strip(':') not in skipheaders:
                 colindexes.append(i)
@@ -128,13 +128,16 @@ def compute_summary(csv_dir, out_file):
         except Exception as e:
             print(e.args)
             continue
+        
+        fn_list = filename.split('.')[0].replace('_', ' ')
+        fn_list = [fn_list[-1], fn_list[0:-1]]
         row = list()
         for col in cols:
             row.append(col.mean())
         if not header_printed:
-            outdata.append(caseid.strip('-') + ',' + ','.join(selheaders) + '\n')
+            outdata.append(','.join(selheaders))
             header_printed = True
-        outdata.append(filename.split('.')[0].replace('_', ' ') + ',' + ','.join('{0:.2f}'.format(i) for i in row) + '\n')
+        outdata.append(','.join(fn_list) + ',' + ','.join('{0:.2f}'.format(i) for i in row) + '\n')
     
     open(out_file, 'w+').writelines(outdata)
 

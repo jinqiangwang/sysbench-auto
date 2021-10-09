@@ -105,6 +105,19 @@ do
     then
         dir_name=`echo ${cfg} | sed -r -e "s#/#_#g" -e "s/.cfg//g"`
         dir_name=${dir_name}_${timestamp}
+        pushd ${output_dir}/csv
+        export CSV_FILE_LIST=`ls -tr *.csv`
+        popd
+        export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
+        echo "chart title is ${chart_title}"
+        python ../lib/csv2chart.py \
+            -d ${output_dir}/csv \
+            -l 1 \
+            -r 8,9 \
+            -o ${output_dir}/result.png \
+            -s ${output_dir}/summary.csv \
+            -t "${chart_title}"
+
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
         cp -r ${output_dir}/* ${WORKSPACE}/test_output/${dir_name}
@@ -119,19 +132,6 @@ do
         
         rm ${WORKSPACE}/test_output/${dir_name}/*.result ${WORKSPACE}/test_output/${dir_name}/*.iostat
 
-        pushd ${output_dir}/csv
-        export CSV_FILE_LIST=`ls -tr *.csv`
-        popd
-
-        export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
-        echo "chart title is ${chart_title}"
-        python ../lib/csv2chart.py \
-            -d ${WORKSPACE}/test_output/${dir_name}/csv \
-            -l 1 \
-            -r 8,9 \
-            -o ${WORKSPACE}/test_output/${dir_name}/result.png \
-            -s ${WORKSPACE}/test_output/${dir_name}/summary.csv \
-            -t "${chart_title}"
     fi
 done
 
