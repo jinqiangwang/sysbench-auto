@@ -47,7 +47,7 @@ do
     if [ ! -e ${output_dir} ]; then mkdir -p ${output_dir}; fi
     touch ${output_dir}/time_${timestamp}
     mkdir ${output_dir}/scripts
-    cp -r ./* ${output_dir}/scripts
+    cp -r `ls | grep -v test_output | grep -v run` ${output_dir}/scripts
 
     if [ "${prep_dev}" == "yes" ];
     then 
