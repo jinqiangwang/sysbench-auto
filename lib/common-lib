@@ -31,8 +31,8 @@ function extract_sysbench_result () {
     result_file=$1
 
     pct_lat=`cat ${result_file} | grep -m 1 "\[" | sed -E 's/.*lat\s\(ms,([0-9%]+)\):.*/\1/g'`
-    echo "thrds,tps,qps,${pct_lat} latency," > csv/${result_file}.csv
-    grep "\[" ${result_file} | sed ${sed_opt} 's/.*thds:\s([0-9]+)\stps:\s([0-9.]+)\sqps:\s([0-9.]+).*%\):\s([0-9.]+).*/\1,\2,\3,\4,/g' >> csv/${result_file}.csv 
+    echo "thrds,tps,qps,${pct_lat} latency" > csv/${result_file}.csv
+    grep "\[" ${result_file} | sed ${sed_opt} 's/.*thds:\s([0-9]+)\stps:\s([0-9.]+)\sqps:\s([0-9.]+).*%\):\s([0-9.]+).*/\1,\2,\3,\4/g' >> csv/${result_file}.csv 
 }
 
 function extract_iostat () {
@@ -83,10 +83,14 @@ function generate_csv() {
         extract_iostat $f.${iostat_ext}
 
         line_count=`cat csv/$f.${result_ext}.csv | wc -l`
-        head -n1 csv/$f.${iostat_ext}.csv > csv/io.csv
-        tail -n$((${line_count}-1)) csv/$f.${iostat_ext}.csv >> csv/io.csv
-        paste -d, csv/$f.${result_ext}.csv csv/io.csv > csv/$f.csv
-        rm csv/$f.${iostat_ext}.csv csv/$f.${result_ext}.csv csv/io.csv
+        head -n1 csv/$f.${iostat_ext}.csv > csv/$f.io
+        tail -n$((${line_count}-1)) csv/$f.${iostat_ext}.csv >> csv/$f.io
+        mv csv/$f.${result_ext}.csv csv/$f.csv
+        rm csv/$f.${iostat_ext}.csv csv/io.csv
+
+        # collect histogram data if it is generated when runing sysbench workload
+        histo_f=csv/$f.histo
+        grep "|" $f.${result_ext} | sed -r "s/\s+([0-9\.]+)\s+\|.*\s+([0-9]+)/\1,\2/g" > ${histo_f}
     done
 
     # for f in `ls *.counter | grep -v -e prepare`;

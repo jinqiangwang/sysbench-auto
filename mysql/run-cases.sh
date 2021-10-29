@@ -116,7 +116,8 @@ do
             -r 8,9 \
             -o ${output_dir}/result.png \
             -s ${output_dir}/summary.csv \
-            -t "${chart_title}"
+            -t "${chart_title}" \
+            -p 99,99.9,99.99
 
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
