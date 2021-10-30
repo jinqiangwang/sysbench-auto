@@ -44,7 +44,7 @@ export dev_pattern=${iostat_dev_str}
 export table_data_src_file=""   # empty|../compress/best.txt 
 export run_cmd_script=./run-cases.sh
 
-export collect_blktrace=0
+export collect_blktrace=1
 export blktrace_time=30
 export WORKSPACE=./
 

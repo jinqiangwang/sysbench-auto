@@ -113,7 +113,6 @@ do
         
         # -p: p99,p999,p999 lat are calcualted from
         # sysbench latency histogram
-        csv2chart_extra_opts=" 9 "
         python ../lib/csv2chart.py \
             -d ${output_dir}/csv \
             -l 1 \
