@@ -15,12 +15,12 @@ if [[ "${formal_test}" == "" ]]
 then
     ############################################################
     ## test configuraion for quick verification
-    export workload_set="prepare oltp_read_only oltp_read_write oltp_update_non_index"
+    export workload_set="prepare oltp_read_only oltp_read_write"
     export warmup_time=5
     export run_time=30      # in seconds
     export thread_count_list="4 16 128"
-    export table_count=128
-    export table_size=1000000
+    export table_count=32
+    export table_size=200000
 else
     ## 300 table x 10 million records for ~550G data set
     export workload_set="prepare oltp_read_only oltp_insert oltp_update_index oltp_update_non_index oltp_read_write oltp_write_only"
@@ -44,6 +44,8 @@ export dev_pattern=${iostat_dev_str}
 export table_data_src_file=""   # empty|../compress/best.txt 
 export run_cmd_script=./run-cases.sh
 
+export collect_blktrace=0
+export blktrace_time=30
 export WORKSPACE=./
 
 pushd ../

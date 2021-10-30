@@ -265,8 +265,6 @@ def process_args(argv):
             super_title = arg
         elif opt == '-p':
             pxx_list=[float(idx) for idx in arg.split(',')]
-        elif opt == '-b':
-            blktrace = True
 
     if len(csv_dir) == 0 or len(out_file) == 0:
         print(help_str)
@@ -276,15 +274,15 @@ def process_args(argv):
         print(help_str)
         sys.exit(2)
 
-    return csv_dir, out_file, left_ax_cols, right_ax_cols, summary_file, super_title, pxx_list, blktrace
+    return csv_dir, out_file, left_ax_cols, right_ax_cols, summary_file, super_title, pxx_list
 
 if __name__ == '__main__':
-    csv_dir, out_file, left_ax_cols, right_ax_cols, summary_file, super_title, pxx_list, blktrace = process_args(argv)
+    csv_dir, out_file, left_ax_cols, right_ax_cols, summary_file, super_title, pxx_list = process_args(argv)
     csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_title)
     if len(summary_file) > 0:
         compute_summary(csv_dir, summary_file, pxx_list)
     env_blktrace = os.getenv('collect_blktrace')
-    if blktrace and env_blktrace:
+    if env_blktrace and env_blktrace != "0":
         d2c_dir = '/'.join(csv_dir.split('/')[:-1]) + '/d2c'
         d2c_outfile = '/'.join(out_file.split('/')[:-1]) + '/result_d2c.png'
         d2c_to_scatter(d2c_dir, d2c_outfile, super_title)

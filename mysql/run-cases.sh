@@ -111,10 +111,9 @@ do
         export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
         echo "chart title is ${chart_title}"
         
-        # -p: p99,p999,p999 lat from sysbench histogram
-        # -b: generate D2C scatter chart, watch out it is slow
-        csv2chart_extra_opts=" -p 99,99.9,99.99 "
-        csv2chart_extra_opts="${csv2chart_extra_opts} -b"
+        # -p: p99,p999,p999 lat are calcualted from
+        # sysbench latency histogram
+        csv2chart_extra_opts=" 9 "
         python ../lib/csv2chart.py \
             -d ${output_dir}/csv \
             -l 1 \
@@ -122,7 +121,7 @@ do
             -o ${output_dir}/result.png \
             -s ${output_dir}/summary.csv \
             -t "${chart_title}" \
-            ${csv2chart_extra_opts}
+            -p 99,99.9,99.99
 
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
