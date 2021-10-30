@@ -70,6 +70,7 @@ for workload in ${workload_set};
 
         # run sysbench workload, all parameters are from sysbench.cfg
         pushd ${sysbench_dir}
+        echo "running sysbench workload ${workload_fname} ..."
         time ./sysbench \
                 --db-driver=mysql \
                 --mysql-socket=${mysql_socket} \
@@ -125,3 +126,4 @@ for workload in ${workload_set};
     done
 
 generate_csv ${output_dir}
+collect_d2c_dat ${output_dir}

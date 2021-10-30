@@ -86,7 +86,7 @@ function generate_csv() {
         head -n1 csv/$f.${iostat_ext}.csv > csv/$f.io
         tail -n$((${line_count}-1)) csv/$f.${iostat_ext}.csv >> csv/$f.io
         mv csv/$f.${result_ext}.csv csv/$f.csv
-        rm csv/$f.${iostat_ext}.csv csv/io.csv
+        rm csv/$f.${iostat_ext}.csv
 
         # collect histogram data if it is generated when runing sysbench workload
         histo_f=csv/$f.histo
@@ -213,7 +213,7 @@ function start_blk_trace() {
         echo "wait time ${sleep_sec} seconds"
         sleep ${sleep_sec}
     else
-        echo "workload run time is less than blktrace run time, will use workload run time as blktrace run time"
+        echo "workload run time is less than (blktrace run time + 30 sec), will use workload run time as blktrace run time"
         blk_run_time_sec=${run_time}
     fi
     echo `date` > ${out_dir}/btrace/${case_name}.timing
@@ -221,6 +221,28 @@ function start_blk_trace() {
     echo "${blktrace_cmd}"
     ${blktrace_cmd}
     echo `date` >> ${out_dir}/btrace/${case_name}.timing
+}
+
+function collect_d2c_dat() {
+    out_dir=$1
+    if [ "${out_dir}" == "" ]; then out_dir=.; fi
+    pushd ${out_dir}
+    bt_dir=btrace
+    d2c_dir=d2c
+    if [[ ${collect_blktrace} -ne 0 ]] && [[ -d ${bt_dir} ]]
+    then
+        if [ ! -d ${d2c_dir} ]; then mkdir ./${d2c_dir}; fi
+        for f in `ls -tr *.${result_ext} | grep -v -e prepare -e load | cut -d\. -f1 | uniq`
+        do
+            barename=${f/.${result_ext}}
+            input=btrace/${barename}
+            btp_file=${d2c_dir}/${barename}.dat
+            d2c_out="${d2c_dir}/${barename}."
+            blkparse -i ${input} -d ${btp_file} -O -q > /dev/null
+            btt -i ${btp_file} -l ${d2c_out} > /dev/null
+            rm ${btp_file}
+        done
+    fi
 }
 
 function collect_sys_info() {

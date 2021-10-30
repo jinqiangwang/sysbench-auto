@@ -110,29 +110,27 @@ do
         popd
         export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
         echo "chart title is ${chart_title}"
+        
+        # -p: p99,p999,p999 lat from sysbench histogram
+        # -b: generate D2C scatter chart, watch out it is slow
+        csv2chart_extra_opts=" -p 99,99.9,99.99 "
+        csv2chart_extra_opts="${csv2chart_extra_opts} -b"
         python ../lib/csv2chart.py \
             -d ${output_dir}/csv \
             -l 1 \
-            -r 8,9 \
+            -r 2,3 \
             -o ${output_dir}/result.png \
             -s ${output_dir}/summary.csv \
             -t "${chart_title}" \
-            -p 99,99.9,99.99
+            ${csv2chart_extra_opts}
 
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
-        cp -r ${output_dir}/* ${WORKSPACE}/test_output/${dir_name}
-        
-        tar czf ${WORKSPACE}/test_output/${dir_name}/sfx_messages.tgz ${WORKSPACE}/test_output/${dir_name}/*sfx_message ${WORKSPACE}/test_output/${dir_name}/*redo*
-        rm ${WORKSPACE}/test_output/${dir_name}/*sfx_message ${WORKSPACE}/test_output/${dir_name}/*redo*
-        
-        tar czf ${WORKSPACE}/test_output/${dir_name}/scripts.tgz ${WORKSPACE}/test_output/${dir_name}/scripts
-        rm -r ${WORKSPACE}/test_output/${dir_name}/scripts
-        
-        rm ${WORKSPACE}/test_output/${dir_name}/csv/*redo*
-        
-        rm ${WORKSPACE}/test_output/${dir_name}/*.result ${WORKSPACE}/test_output/${dir_name}/*.iostat
-
+        cp -r `ls -d ${output_dir}/* | grep -v -e btrace -e d2c -e fp.dat -e scripts -e message -e redo -e iostat -e result`\
+               ${WORKSPACE}/test_output/${dir_name}
+        cp ${output_dir}/*.png  ${WORKSPACE}/test_output/${dir_name}
+        tar czf ${WORKSPACE}/test_output/${dir_name}/sfx_messages.tgz ${output_dir}/*sfx_message
+        tar czf ${WORKSPACE}/test_output/${dir_name}/scripts.tgz ${output_dir}/scripts
     fi
 done
 
