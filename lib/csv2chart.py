@@ -45,7 +45,7 @@ def read_cols(file_path, use_cols=None, delim=',', skip_row=1):
     if cols.ndim == 1:
         return [cols[0]], [map(float, cols[skip_row:])]
     else:
-        return cols[:,0], np.array([map(float, col[skip_row:]) for col in cols])
+        return cols[:,0], np.array([map(float, col) for col in cols[:,skip_row:]])
 
 def csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_title):
     line_weight = 1

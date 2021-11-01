@@ -82,9 +82,12 @@ function generate_csv() {
 
         extract_iostat $f.${iostat_ext}
 
-        line_count=`cat csv/$f.${result_ext}.csv | wc -l`
+        sb_line_cnt=`cat csv/$f.${result_ext}.csv | wc -l`
+        io_line_cnt=`cat csv/$f.${iostat_ext}.csv | wc -l`
+        if [[ ${io_line_cnt} -ge ${sb_line_cnt} ]]; then line_cnt=$((${sb_line_cnt}-1)); else line_cnt=io_line_cnt; fi
+        
         head -n1 csv/$f.${iostat_ext}.csv > csv/$f.io
-        tail -n$((${line_count}-1)) csv/$f.${iostat_ext}.csv >> csv/$f.io
+        tail -n$((${line_cnt}-1)) csv/$f.${iostat_ext}.csv >> csv/$f.io
         mv csv/$f.${result_ext}.csv csv/$f.csv
         rm csv/$f.${iostat_ext}.csv
 

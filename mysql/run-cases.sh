@@ -111,7 +111,7 @@ do
         export chart_title=${chart_title-"${cfg} - ${sw_ver}"}
         echo "chart title is ${chart_title}"
         
-        # -p: p99,p999,p999 lat are calcualted from
+        # -p: p99,p999,p9999 lat are calcualted from
         # sysbench latency histogram
         python ../lib/csv2chart.py \
             -d ${output_dir}/csv \
