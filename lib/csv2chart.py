@@ -4,6 +4,7 @@
 import sys
 from sys import argv
 import os
+import math
 import getopt
 import matplotlib
 matplotlib.use('Agg')
@@ -61,7 +62,7 @@ def csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_titl
     col_count = 2
     if len(file_list) <= 1:
         col_count = 1
-    row_count = len(file_list) / 2 + len(file_list) % 2
+    row_count = math.ceil(len(file_list) / 2)
     fig = plt.figure(figsize=(14 * col_count, 5 * row_count))
     fig.suptitle(super_title, fontsize=16)
  
@@ -77,7 +78,7 @@ def csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_titl
         sb_headers, sb_cols = read_cols('{0}/{1}.csv'.format(csv_dir, barefilename), left_ax_cols)
         colidx = 0
         for col in sb_cols:
-            axis1.plot(col, '-', label=sb_headers[colidx], 
+            axis1.plot(list(col), '-', label=sb_headers[colidx], 
                 lw = line_weight, c = left_colors[colidx % len(left_colors)])
             colidx += 1
         
@@ -91,7 +92,7 @@ def csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_titl
         io_headers, io_cols = read_cols('{0}/{1}.io'.format(csv_dir, barefilename), right_ax_cols)
         colidx = 0
         for col in io_cols:
-            axis2.plot(col, '-', label=io_headers[colidx], 
+            axis2.plot(list(col), '-', label=io_headers[colidx], 
                 lw = line_weight, c = right_colors[colidx % len(right_colors)])
             colidx += 1
 
