@@ -5,7 +5,7 @@
 # without opt it will run a quick test
 formal_test=$1
 
-export dev_name=${dev_name-nvme9n1}
+export dev_name=${dev_name-nvme10n1}
 export capacity_gb=${capacity_gb-3840}
 export prep_dev=${prep_dev-yes}         # yes|no
 export init_db=${init_db-yes}           # yes|no

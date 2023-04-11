@@ -85,8 +85,6 @@ for workload in ${workload_set};
                 --histogram=on \
                 --tables=${table_count} \
                 --table-size=${table_size} \
-                --create-table-options=${create_tbl_opt} \
-                --table-data-src-file=${table_data_src_file} \
                 --db-ps-mode=disable \
                 ${cmd} \
                 >> ${output_dir}/${workload_fname}.result

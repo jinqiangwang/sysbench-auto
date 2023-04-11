@@ -1,0 +1,20 @@
+1. 安装以下包
+    yum install -y python-matplotlib mariadb-devel
+
+2. MySQL 压缩包解压缩后放到 /opt/app/mysql-8.0.25
+    mkdir /opt/app -p 
+    tar xzf mysql-8.0.25.tar.gz -C /opt/app
+    mv /opt/app/mysql-8.0.25-linux-glibc2.12-x86_64 /opt/app/mysql-8.0.25
+
+3. 脚本放到
+    /root/dapustor/sysbench-auto
+
+4. 进入目录 /root/dapustor/sysbench-auto/mysql
+    打开./sysbench-test.sh
+    将export dev_name=${dev_name-nvmeXnY} 中的盘符改为要测试的盘符
+    将 export collect_blktrace=0 改为1
+    保存
+    执行./sysbench-test.
+
+    
+5. 数据盘会根据盘符挂载到 /data/nvmeXnY
