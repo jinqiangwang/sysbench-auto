@@ -23,6 +23,7 @@ then
     sudo fio --filename=${disk} ${pre_cond_cfg}
 fi
 
+sudo wipefs -a -f ${disk}
 sudo mkfs ${mkfs_opt} ${disk}
 sudo mount ${mnt_opt} ${disk} ${mnt_point_data}
  
