@@ -12,11 +12,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def is_below_2_7():
-    if sys.version_info[0] <= 2 and sys.version_info[1] < 7:
-        return True
-    return False
-
 def collect_files_from_dir(dir, pattern, env_var):
     files=list()
     env_file_list = None
@@ -62,7 +57,9 @@ def csv_to_line_chart(csv_dir, out_file, left_ax_cols, right_ax_cols, super_titl
     col_count = 2
     if len(file_list) <= 1:
         col_count = 1
-    row_count = math.ceil(len(file_list) / 2)
+
+    row_count = int(math.ceil(len(file_list) / 2.0))
+
     fig = plt.figure(figsize=(14 * col_count, 5 * row_count))
     fig.suptitle(super_title, fontsize=16)
  
@@ -287,4 +284,3 @@ if __name__ == '__main__':
         d2c_dir = '/'.join(csv_dir.split('/')[:-1]) + '/d2c'
         d2c_outfile = '/'.join(out_file.split('/')[:-1]) + '/result_d2c.png'
         d2c_to_scatter(d2c_dir, d2c_outfile, super_title)
-
