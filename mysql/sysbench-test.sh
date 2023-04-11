@@ -49,7 +49,6 @@ export WORKSPACE=./
 
 pushd ../
 if [ ! -d bin ]; then tar xzf bin.tgz; fi
-if [ ! -d compress ]; then tar xzf compress.tgz; fi
 popd
 
 export cfg_list=${WORKLOADS}
