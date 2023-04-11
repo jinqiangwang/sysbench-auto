@@ -55,3 +55,5 @@ export cfg_list=${WORKLOADS}
 export chart_title="${WORKLOADS#*/}-awoff"
 if [ ${atomic_write} -eq 1 ]; then chart_title="${WORKLOADS#*/}-awoff"; fi
 ${run_cmd_script}
+
+./stop.sh
