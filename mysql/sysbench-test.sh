@@ -16,9 +16,9 @@ then
     ############################################################
     ## test configuraion for quick verification
     export workload_set="prepare oltp_read_write"
-    export warmup_time=5
-    export run_time=30      # in seconds
-    export thread_count_list="1"
+    export warmup_time=0
+    export run_time=10      # in seconds
+    export thread_count_list="1 4"
     export table_count=32
     export table_size=200000
 else

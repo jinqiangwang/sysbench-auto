@@ -23,11 +23,9 @@ ps aux | grep mysqld | grep -v grep > ${output_dir}/mysqld.cmdline
 
 DU=du
 
-if [ -e /opt/sfx/bin/sfx-du ]; then DU="sudo /opt/sfx/bin/sfx-du "; fi
-
 source ../lib/common-lib
 export MYSQL_PWD=${mysql_pwd}
-collect_sys_info ${output_dir} ${css_status}
+collect_sys_info ${output_dir}
 
 echo "will run workload(s) ${workload_set}"
 for workload in ${workload_set};
@@ -37,9 +35,6 @@ for workload in ${workload_set};
         # workload friendly name. it will be used in fio.sh, so make it global
         export workload_fname=${workload}_${threads}
 	if [ "prepare" == "${workload}" ]; then cmd="prepare"; workload="oltp_common"; workload_fname="prepare"; fi
-        echo -e "sfx_message starts at: " `date +%Y-%m-%d\ %H:%M:%S` "\n"  > ${output_dir}/${workload_fname}.sfx_message
-        sudo chmod 666 /var/log/sfx_messages;
-	tail -f -n 0 /var/log/sfx_messages >> ${output_dir}/${workload_fname}.sfx_message &
         echo $! > ${output_dir}/tail.${workload_fname}.pid
         # try to keep existing result file
         if [ -e ${output_dir}/${workload_fname}.result ];
@@ -104,7 +99,6 @@ for workload in ${workload_set};
         fi
 
         df -h ${disk} > ${output_dir}/${workload_fname}.dbsize
-        cat /sys/block/${dev_name}/sfx_smart_features/sfx_capacity_stat >> ${output_dir}/${workload_fname}.dbsize
         ${DU} -B1k ${mysql_datadir} >> ${output_dir}/${workload_fname}.dbsize
 
         # collect redo log perf counter data
@@ -113,9 +107,6 @@ for workload in ${workload_set};
                 collect_perf_counter_redolog  ${output_dir}/${workload_fname}_redolog.counter
         fi
 
-        echo -e "\nsfx_messages ends at: `date +%Y-%m-%d_%H:%M:%S`\n"  >> ${output_dir}/${workload_fname}.sfx_message
-        echo ${output_dir}/tail.${workload_fname}.pid
-        kill `cat ${output_dir}/tail.${workload_fname}.pid`
         rm -f ${output_dir}/tail.${workload_fname}.pid
         echo -e "\n${workload_fname}" "\nends at: " "`date +%Y-%m-%d_%H:%M:%S`" >> ${output_dir}/${workload_fname}.result
         sudo pkill top

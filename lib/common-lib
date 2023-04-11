@@ -2,7 +2,7 @@
 
 export iostat_ext=${iostat_ext-"iostat"}
 export result_ext=${result_ext-"result"}
-export dev_pattern=${dev_pattern-"sfdv0n1 nvme0n1"}
+export dev_pattern=${dev_pattern-"nvme10n1"}
 export uname_txt=$(uname)
 
 sed_opt=" "
@@ -262,11 +262,6 @@ function collect_sys_info() {
         local_output_dir=`pwd`
     fi
 
-    if [ "${css_status}" == "" ];
-    then
-        css_status="sfx-status"
-    fi
-
     echo -e "\n[sys]"           >  ${local_output_dir}/sysinfo.txt
     cat /sys/class/dmi/id/sys_vendor \
                                 >> ${local_output_dir}/sysinfo.txt
@@ -288,13 +283,6 @@ function collect_sys_info() {
     cat /etc/system-release     >> ${local_output_dir}/sysinfo.txt
     echo -e "\n[filesystem]"	>> ${local_output_dir}/sysinfo.txt
     findmnt			>> ${local_output_dir}/sysinfo.txt
-    echo -e "\n[css-status]"    >> ${local_output_dir}/sysinfo.txt
-
-    which ${css_status} > /dev/null
-    if [ $? -eq 0 ];
-    then
-        sudo ${css_status}      >> ${local_output_dir}/sysinfo.txt
-    fi
 }
 
 function gen_benchinfo_pg() {
@@ -308,7 +296,7 @@ function gen_benchinfo_pg() {
     new_name=${output_dir##*/}_${ssd_name%3.2t}_${dbsize}G_${fillfactor}
     new_file=${output_dir%/*}/${new_name}
     mv ${output_dir} ${new_file}
-    zip -rq ${output_dir%/*}/${new_name}.zip ../${new_name} -x "../${new_name}/*.log" "../${new_name}/*.sfx_message"
+    zip -rq ${output_dir%/*}/${new_name}.zip ../${new_name} -x "../${new_name}/*.log"
     if [ -e "btrace" ]; then
         zip -r btrace.zip btrace
         rm -rf btrace

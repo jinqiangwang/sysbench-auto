@@ -127,7 +127,6 @@ do
         cp -r `ls -d ${output_dir}/* | grep -v -e btrace -e d2c -e fp.dat -e scripts -e message -e redo -e iostat -e result`\
                ${WORKSPACE}/test_output/${dir_name}
         cp ${output_dir}/*.png  ${WORKSPACE}/test_output/${dir_name}
-        tar czf ${WORKSPACE}/test_output/${dir_name}/sfx_messages.tgz ${output_dir}/*sfx_message
         tar czf ${WORKSPACE}/test_output/${dir_name}/scripts.tgz ${output_dir}/scripts
     fi
 done
