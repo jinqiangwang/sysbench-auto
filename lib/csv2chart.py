@@ -135,6 +135,10 @@ def d2c_to_scatter(d2c_dir, out_file, super_title):
 
     plt.savefig(out_file, bbox_inches = 'tight')
 
+def avg_lat_from_result(result_file):
+    avg_lat = os.popen('grep avg: {} | sed -r "s/\s+/,/g" | cut -d, -f 3'.format(result_file))
+    return avg_lat
+
 def pxx_from_histo(percentile_number, lat_ary):
     if not len(lat_ary) > 0 or percentile_number >= 100 or percentile_number <= 0:
         print('invalid input parameter! total_cnt > 0; 0 < percentile_number < 100, lat_ary=[[lat,cnt]]')
@@ -194,8 +198,11 @@ def compute_summary(csv_dir, out_file, pxx_list):
             histo_f = csv_dir + '/' + barefilename + '.histo'
             histo_ary=np.loadtxt(histo_f, delimiter=',')
             for pxx in pxx_list:
-                pxx_headers.append('{0}% latency'.format(pxx))
+                pxx_headers.append('{0}% lat'.format(pxx))
                 pxx_vals.append(pxx_from_histo(pxx, histo_ary))
+
+        pxx_headers.append('avg lat')
+        pxx_vals.append(avg_lat_from_result('./' + barefilename + '.result'))
 
         # selheaders = ['thrd cnt', 'workload', sb_headers, pxx headers, io_headers]
         selheaders.extend(sb_headers)

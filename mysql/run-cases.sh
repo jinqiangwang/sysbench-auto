@@ -113,7 +113,7 @@ do
         
         # -p: p99,p999,p9999 lat are calcualted from
         # sysbench latency histogram
-        python ../lib/csv2chart.py \
+        python3 ../lib/csv2chart.py \
             -d ${output_dir}/csv \
             -l 1 \
             -r 2,3 \
@@ -124,9 +124,9 @@ do
 
         mkdir -p ${WORKSPACE}/test_output/${dir_name}
         echo "collecting test output from [${output_dir}] to [${WORKSPACE}/test_output/${dir_name}]"
-        cp -r `ls -d ${output_dir}/* | grep -v -e btrace -e d2c -e fp.dat -e scripts -e message -e redo -e iostat`\
+        cp -ra `ls -d ${output_dir}/* | grep -v -e btrace -e d2c -e fp.dat -e scripts -e message -e redo -e iostat`\
                ${WORKSPACE}/test_output/${dir_name}
-        cp ${output_dir}/*.png  ${WORKSPACE}/test_output/${dir_name}
+        cp -a ${output_dir}/*.png  ${WORKSPACE}/test_output/${dir_name}
         tar czf ${WORKSPACE}/test_output/${dir_name}/scripts.tgz ${output_dir}/scripts
     fi
 done
